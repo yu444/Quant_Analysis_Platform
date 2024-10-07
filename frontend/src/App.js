@@ -1,21 +1,17 @@
 import React from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Registration from './components/Registration';
-import { createGlobalStyle } from 'styled-components';
-
-const GlobalStyle = createGlobalStyle`
-  body {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-`;
+import Login from './components/Login';
 
 function App() {
   return (
-    <>
-      <GlobalStyle />
-      <Registration />
-    </>
+    <Router>
+      <Routes>
+        <Route path="/register" element={<Registration />} />
+        <Route path="/login" element={<Login />} />
+        {/* Add other routes as needed */}
+      </Routes>
+    </Router>
   );
 }
 
