@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 
 const PageContainer = styled.div`
   background-image: url('/analysis-background.jpg');
@@ -107,18 +108,42 @@ function Login() {
   });
   const [message, setMessage] = useState('');
   const [error, setError] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const checkAuth = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/check_auth', {
+        withCredentials: true
+      });
+      console.log('Auth check response:', response.data);
+      return response.data.message === 'Authenticated';
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      return false;
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:5000/login', formData);
+      const response = await axios.post('http://localhost:5000/login', formData, {
+        withCredentials: true
+      });
       setMessage(response.data.message);
       setError(false);
-      // Here you would typically store the user's token and redirect to a dashboard
+
+      // Check authentication status
+      const isAuthenticated = await checkAuth();
+      if (isAuthenticated) {
+        navigate('/dashboard');
+      } else {
+        setError(true);
+        setMessage('Authentication failed. Please try logging in again.');
+      }
     } catch (error) {
       setMessage(error.response?.data?.message || 'An error occurred');
       setError(true);
