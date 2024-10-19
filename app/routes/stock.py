@@ -3,6 +3,7 @@ from flask_login import login_required
 from app.models.stock import Stock, StockPrice, StockMetrics
 from app.services.stock_service import get_stock_data
 from app.services.analysis_service import calculate_metrics
+import yfinance as yf
 
 bp = Blueprint('stock', __name__)
 
@@ -50,3 +51,33 @@ def get_stock_metrics(symbol):
         'profit_margin': metrics.profit_margin,
         'revenue_growth': metrics.revenue_growth
     })
+    
+@bp.route('/market-overview', methods=['GET'])
+def get_market_overview():
+    print("get_market_overview started")
+    # Define major indices
+    indices = {
+        'S&P 500': '^GSPC',
+        'Dow Jones': '^DJI',
+        'NASDAQ': '^IXIC'
+    }
+    
+    market_data = {}
+    
+    for name, symbol in indices.items():
+        index = yf.Ticker(symbol)
+        info = index.info
+        #print(name + " info:" + str(index.info))
+        market_data[name] = {
+            'price': info.get('previousClose', 'N/A'),
+            'change': info.get('regularMarketChange', 'N/A'),
+            'change_percent': info.get('regularMarketChangePercent', 'N/A')
+        }
+        print(name + " :" + str(market_data[name]))
+    
+    # You can add more market data here, such as:
+    # - Top gainers/losers
+    # - Sector performance
+    # - Market breadth indicators
+    
+    return jsonify(market_data)
