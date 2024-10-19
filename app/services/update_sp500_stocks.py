@@ -2,6 +2,7 @@
 
 import sys
 import os
+from datetime import datetime, timedelta
 
 # Add the project root directory to the Python path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -9,6 +10,7 @@ sys.path.insert(0, project_root)
 
 from app import db, create_app
 from app.models.stock import Stock
+from app.models.stock import StockPrice  # Ensure this path matches your project structure
 
 import yfinance as yf
 import pandas as pd
@@ -49,11 +51,51 @@ def update_stock(symbol, company_name, sector, industry):
         db.session.rollback()
         logger.error(f"Error updating stock {symbol}: {e}")
 
+def fetch_and_update_stock_prices(symbol):
+    """Fetch historical prices for a given stock symbol and update the database"""
+    try:
+        # Fetch historical data for the past year
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=365)
+        
+        # Fetch historical prices using yfinance
+        historical_data = yf.download(symbol, start=start_date, end=end_date)
+
+        for date, row in historical_data.iterrows():
+            # Create or update StockPrice entries
+            price_record = StockPrice.query.filter_by(stock_id=symbol, date=date.date()).first()
+            if price_record:
+                price_record.open = row['Open']
+                price_record.high = row['High']
+                price_record.low = row['Low']
+                price_record.close = row['Close']
+                price_record.volume = row['Volume']
+            else:
+                # Assuming you have a way to get the stock ID from the symbol
+                stock_id = Stock.query.filter_by(symbol=symbol).first().id
+                new_price_record = StockPrice(
+                    stock_id=stock_id,
+                    date=date.date(),
+                    open=row['Open'],
+                    high=row['High'],
+                    low=row['Low'],
+                    close=row['Close'],
+                    volume=row['Volume']
+                )
+                db.session.add(new_price_record)
+
+        db.session.commit()
+        logger.info(f"Updated prices for stock: {symbol}")
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error fetching/updating prices for {symbol}: {e}")
+
 def update_sp500_stocks():
     """Update all S&P 500 stocks in the database"""
     stocks = get_sp500_stocks()
     for symbol, company_name, sector, industry in stocks:
         update_stock(symbol, company_name, sector, industry)
+        fetch_and_update_stock_prices(symbol)  # Fetch and update prices after updating stock info
     logger.info("Finished updating S&P 500 stocks")
 
 def run_sp500_update():
