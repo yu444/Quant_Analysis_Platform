@@ -1,143 +1,185 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import styled from 'styled-components';
+import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
 
-const DashboardContainer = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  padding: 20px;
-  background-color: #f0f2f5;
-`;
+export default function Dashboard() {
+  const [userData, setUserData] = useState(null);
+  const [marketData, setMarketData] = useState(null);
+  const [watchlist, setWatchlist] = useState([]);
+  const [news, setNews] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-const Widget = styled.div`
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-`;
+  useEffect(() => {
+    // Fetch user data
+    fetch('http://localhost:5000/user', {
+      credentials: 'include'  // Equivalent to axios withCredentials
+    })
+      .then(response => {
+        if (!response.ok) throw new Error('Network response was not ok');
+        return response.json();
+      })
+      .then(data => setUserData(data))
+      .catch(error => {
+        console.error('Error fetching user data:', error);
+        if (error.response?.status === 401) {
+          // Handle unauthorized access
+        }
+      });
 
-const Title = styled.h2`
-  color: #333;
-  font-size: 18px;
-  margin-bottom: 15px;
-`;
-
-const UserWelcome = styled(Widget)`
-  grid-column: span 3;
-`;
-
-const MarketOverview = styled(Widget)`
-  grid-column: span 2;
-`;
-
-const Watchlist = styled(Widget)`
-  grid-column: span 1;
-`;
-
-const NewsFeed = styled(Widget)`
-  grid-column: span 2;
-`;
-
-const QuickActions = styled(Widget)`
-  grid-column: span 1;
-`;
-
-function Dashboard() {
-    const [userData, setUserData] = useState(null);
-    const [marketData, setMarketData] = useState(null);
-    const [watchlist, setWatchlist] = useState([]);
-    const [news, setNews] = useState([]);
-
-    useEffect(() => {
-        // Fetch user data
-        axios.get('http://localhost:5000/user', {
-            withCredentials: true  // This is crucial for sending cookies
+    // Fetch market indices data using the new endpoint
+    const fetchMarketData = () => {
+      fetch('http://localhost:5000/market-indices/latest')
+        .then(response => {
+          if (!response.ok) throw new Error('Network response was not ok');
+          return response.json();
         })
-            .then(response => setUserData(response.data))
-            .catch(error => {
-                console.error('Error fetching user data:', error);
-                // Handle unauthorized access, e.g., redirect to login page
-                if (error.response && error.response.status === 401) {
-                    // Redirect to login page or show login prompt
-                }
-            });
+        .then(data => {
+          console.log('Market Indices Data:', data);
+          setMarketData(data.indices);
+          setLoading(false);
+        })
+        .catch(error => {
+          console.error('Error fetching market indices:', error);
+          setLoading(false);
+        });
+    };
 
-        // Fetch market data (you'll need to implement this endpoint)
-        axios.get('http://localhost:5000/market-overview')
-            .then(response => {
-                console.log('Market Overview Data:', response.data);
-                setMarketData(response.data)
-            })
-            .catch(error => console.error('Error fetching market data:', error));
+    fetchMarketData();
+    // Update market data every 5 minutes
+    const interval = setInterval(fetchMarketData, 300000);
 
-        // Fetch watchlist (you'll need to implement this endpoint)
-        /*axios.get('http://localhost:5000/watchlist')
-          .then(response => setWatchlist(response.data))
-          .catch(error => console.error('Error fetching watchlist:', error));
-    
-        // Fetch news (you'll need to implement this endpoint)
-        axios.get('http://localhost:5000/news')
-          .then(response => setNews(response.data))
-          .catch(error => console.error('Error fetching news:', error));*/
-    }, []);
+    return () => clearInterval(interval);
+  }, []);
 
-    if (!userData) return <div>Loading...</div>;
+  const formatNumber = (number) => {
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(number);
+  };
+
+  const renderMarketIndex = (indexData) => {
+    if (!indexData) return null;
+
+    const isPositive = indexData.daily_change > 0;
+    const Icon = isPositive ? TrendingUp : TrendingDown;
+    const colorClass = isPositive ? 'text-green-600' : 'text-red-600';
 
     return (
-        <DashboardContainer>
-            <UserWelcome>
-                <Title>Welcome, {userData.username}!</Title>
-                <p>Last login: {new Date().toLocaleString()}</p>
-            </UserWelcome>
-
-            <MarketOverview>
-                <Title>Market Overview</Title>
-                {marketData ? (
-                    <div>
-                        <p>S&P 500: {marketData.sp500}</p>
-                        <p>NASDAQ: {marketData.nasdaq}</p>
-                        <p>Dow Jones: {marketData.dowJones}</p>
-                    </div>
-                ) : (
-                    <p>Loading market data...</p>
-                )}
-            </MarketOverview>
-
-            <Watchlist>
-                <Title>Your Watchlist</Title>
-                {watchlist.length > 0 ? (
-                    <ul>
-                        {watchlist.map(stock => (
-                            <li key={stock.symbol}>{stock.symbol}: ${stock.price}</li>
-                        ))}
-                    </ul>
-                ) : (
-                    <p>No stocks in watchlist</p>
-                )}
-            </Watchlist>
-
-            <NewsFeed>
-                <Title>Latest News</Title>
-                {news.length > 0 ? (
-                    <ul>
-                        {news.slice(0, 5).map(item => (
-                            <li key={item.id}>{item.headline}</li>
-                        ))}
-                    </ul>
-                ) : (
-                    <p>No news available</p>
-                )}
-            </NewsFeed>
-
-            <QuickActions>
-                <Title>Quick Actions</Title>
-                <button>Analyze Stock</button>
-                <button>View Portfolio</button>
-                <button>Set Alert</button>
-            </QuickActions>
-        </DashboardContainer>
+      <div className="p-4 bg-white rounded-lg shadow-sm">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-lg font-semibold text-gray-800">{indexData.name}</h3>
+          <Icon className={`w-5 h-5 ${colorClass}`} />
+        </div>
+        <div className="text-2xl font-bold mb-2">
+          {formatNumber(indexData.latest_value)}
+        </div>
+        <div className={`flex items-center ${colorClass}`}>
+          <span className="font-medium">
+            {isPositive ? '+' : ''}{formatNumber(indexData.daily_change)} 
+          </span>
+          <span className="ml-2">
+            ({formatNumber(indexData.change_percent)}%)
+          </span>
+        </div>
+        <div className="mt-2 text-sm text-gray-500">
+          Volume: {indexData.volume?.toLocaleString()}
+        </div>
+        <div className="mt-1 text-sm text-gray-500">
+          Range: {formatNumber(indexData.low)} - {formatNumber(indexData.high)}
+        </div>
+      </div>
     );
-}
+  };
 
-export default Dashboard;
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      {/* Welcome Section */}
+      <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">
+          Welcome, {userData?.username || 'User'}!
+        </h1>
+        <p className="text-gray-600">
+          Last login: {new Date().toLocaleString()}
+        </p>
+      </div>
+
+      {/* Market Overview Section */}
+      <div className="mb-6">
+        <div className="flex items-center mb-4">
+          <Activity className="w-6 h-6 text-blue-600 mr-2" />
+          <h2 className="text-xl font-bold text-gray-800">Market Overview</h2>
+        </div>
+        
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading market data...</p>
+          </div>
+        ) : marketData ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Object.values(marketData).map((index) => (
+              <div key={index.name}>
+                {renderMarketIndex(index)}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-600">
+            No market data available
+          </div>
+        )}
+      </div>
+
+      {/* Additional Sections */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Watchlist */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Your Watchlist</h2>
+          {watchlist.length > 0 ? (
+            <ul className="space-y-2">
+              {watchlist.map(stock => (
+                <li key={stock.symbol} className="flex justify-between items-center">
+                  <span className="font-medium">{stock.symbol}</span>
+                  <span>${stock.price}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-600">No stocks in watchlist</p>
+          )}
+        </div>
+
+        {/* News Feed */}
+        <div className="bg-white rounded-lg shadow-sm p-6 md:col-span-2">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Latest News</h2>
+          {news.length > 0 ? (
+            <ul className="space-y-3">
+              {news.slice(0, 5).map(item => (
+                <li key={item.id} className="border-b border-gray-100 pb-2">
+                  {item.headline}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-600">No news available</p>
+          )}
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="fixed bottom-6 right-6">
+        <div className="flex space-x-2">
+          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+            Analyze Stock
+          </button>
+          <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+            View Portfolio
+          </button>
+          <button className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+            Set Alert
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
