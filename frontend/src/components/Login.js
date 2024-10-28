@@ -108,6 +108,7 @@ function Login() {
   });
   const [message, setMessage] = useState('');
   const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -116,11 +117,18 @@ function Login() {
 
   const checkAuth = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/check_auth', {
-        withCredentials: true
+      const response = await fetch('http://localhost:5000/check_auth', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
-      console.log('Auth check response:', response.data);
-      return response.data.message === 'Authenticated';
+      
+      if (!response.ok) throw new Error('Auth check failed');
+      
+      const data = await response.json();
+      return data.message === 'Authenticated';
     } catch (error) {
       console.error('Auth check failed:', error);
       return false;
@@ -129,24 +137,41 @@ function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      const response = await axios.post('http://localhost:5000/login', formData, {
-        withCredentials: true
-      });
-      setMessage(response.data.message);
-      setError(false);
+    setLoading(true);
+    setMessage('');
+    setError(false);
 
+    try {
+      const response = await fetch('http://localhost:5000/login', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
+
+      setMessage(data.message);
+      
       // Check authentication status
       const isAuthenticated = await checkAuth();
       if (isAuthenticated) {
         navigate('/dashboard');
       } else {
         setError(true);
-        setMessage('Authentication failed. Please try logging in again.');
+        setMessage('Authentication failed. Please try again.');
       }
     } catch (error) {
-      setMessage(error.response?.data?.message || 'An error occurred');
       setError(true);
+      setMessage(error.message || 'An error occurred');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -168,6 +193,7 @@ function Login() {
               onChange={handleChange}
               required
               placeholder="Enter your username"
+              disabled={loading}
             />
           </FormGroup>
           <FormGroup>
@@ -180,14 +206,19 @@ function Login() {
               onChange={handleChange}
               required
               placeholder="Enter your password"
+              disabled={loading}
             />
           </FormGroup>
-          <Button type="submit">Log In</Button>
+          <Button type="submit" disabled={loading}>
+            {loading ? 'Logging in...' : 'Log In'}
+          </Button>
         </Form>
         {message && <Message error={error}>{message}</Message>}
       </Container>
     </PageContainer>
   );
 }
+
+// Your existing styled components remain the same
 
 export default Login;

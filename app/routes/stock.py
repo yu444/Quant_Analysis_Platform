@@ -8,9 +8,12 @@ from datetime import datetime, timedelta
 from sqlalchemy import desc
 from app import db
 
+from flask_cors import cross_origin
+
 bp = Blueprint('stock', __name__)
 
 @bp.route('/search', methods=['GET'])
+@cross_origin(origins=['http://localhost:3000'], supports_credentials=True)
 @login_required
 def search_stocks():
     query = request.args.get('q', '')
@@ -19,6 +22,7 @@ def search_stocks():
     return jsonify([{'symbol': s.symbol, 'name': s.company_name} for s in stocks])
 
 @bp.route('/stock/<symbol>', methods=['GET'])
+@cross_origin(origins=['http://localhost:3000'], supports_credentials=True)
 @login_required
 def get_stock_info(symbol):
     stock = Stock.query.filter_by(symbol=symbol).first_or_404()
@@ -38,6 +42,7 @@ def get_stock_info(symbol):
     })
 
 @bp.route('/stock/<symbol>/historical', methods=['GET'])
+@cross_origin(origins=['http://localhost:3000'], supports_credentials=True)
 @login_required
 def get_historical_data(symbol):
     stock = Stock.query.filter_by(symbol=symbol).first_or_404()
@@ -50,6 +55,7 @@ def get_historical_data(symbol):
     } for p in prices])
 
 @bp.route('/stock/<symbol>/metrics', methods=['GET'])
+@cross_origin(origins=['http://localhost:3000'], supports_credentials=True)
 @login_required
 def get_stock_metrics(symbol):
     stock = Stock.query.filter_by(symbol=symbol).first_or_404()
@@ -65,6 +71,7 @@ def get_stock_metrics(symbol):
     })
 
 @bp.route('/market-overview', methods=['GET'])
+@cross_origin(origins=['http://localhost:3000'], supports_credentials=True)
 def get_market_overview():
     """Get market overview with real-time data from Yahoo Finance"""
     indices = {
@@ -87,6 +94,7 @@ def get_market_overview():
     return jsonify(market_data)
 
 @bp.route('/market-indices/latest', methods=['GET'])
+@cross_origin(origins=['http://localhost:3000'], supports_credentials=True)
 def get_latest_indices():
     """Get latest market indices data from database"""
     try:
@@ -143,6 +151,7 @@ def get_latest_indices():
         return jsonify({'error': 'Failed to retrieve market indices data'}), 500
 
 @bp.route('/market-indices/historical/<name>', methods=['GET'])
+@cross_origin(origins=['http://localhost:3000'], supports_credentials=True)
 def get_index_historical(name):
     """Get historical data for a specific market index"""
     try:
@@ -179,6 +188,7 @@ def get_index_historical(name):
         return jsonify({'error': 'Failed to retrieve historical index data'}), 500
 
 @bp.route('/market-indices/summary', methods=['GET'])
+@cross_origin(origins=['http://localhost:3000'], supports_credentials=True)
 def get_indices_summary():
     """Get a summary of all market indices with their latest values"""
     try:
