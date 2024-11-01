@@ -1,14 +1,12 @@
-author: Joey Zhang
+# Quant Analysis Platform
+
+Author: Joey Zhang
 Date: 2024-Oct-7
 
-plase ensure you are at virtual env by using command:
-
+Please ensure you are at virtual env by using command:
+```bash
 venv\Scripts\activate
-
-////////////////////////////
-
-```markdown
-# Quant Analysis Platform
+```
 
 ## Project Overview
 The Quant Analysis Platform is a web-based application designed to provide quantitative analysis tools for financial market data. It combines a Flask backend for data processing and API endpoints with a React frontend for user interaction.
@@ -27,7 +25,8 @@ quant_analysis_project/
 │   │   └── admin.py
 │   └── services/
 │       ├── stock_service.py
-│       └── analysis_service.py
+│       ├── analysis_service.py
+│       └── update_market_index.py
 ├── frontend/
 │   ├── public/
 │   ├── src/
@@ -36,7 +35,8 @@ quant_analysis_project/
 ├── venv/
 ├── config.py
 ├── requirements.txt
-└── run.py
+├── run.py
+└── manage_schedule.py
 ```
 
 ## Backend Setup
@@ -52,7 +52,7 @@ quant_analysis_project/
 
 3. Install required packages:
    ```
-   pip install flask flask-sqlalchemy flask-migrate flask-login python-dotenv requests yfinance flask-cors
+   pip install flask flask-sqlalchemy flask-migrate flask-login python-dotenv requests yfinance flask-cors flask-apscheduler
    ```
 
 4. Create a `.env` file in the project root with the following content:
@@ -70,17 +70,29 @@ quant_analysis_project/
    flask db upgrade
    ```
 
+## Scheduled Tasks Setup
+
+1. Market Data Updates:
+   - The system automatically updates market indices every minute
+   - Tracked indices include S&P 500, Dow 30, Nasdaq, Russell 2000, Crude Oil, and Gold
+
+2. Running the Scheduler:
+   ```bash
+   # Ensure you're in virtual environment
+   venv\Scripts\activate
+   
+   # Start the scheduler
+   python manage_schedule.py
+   ```
+
+3. Scheduler Features:
+   - Automatic market data updates every minute
+   - Console logging of update status
+   - Error handling and reporting
+
 ## Frontend Setup
 
-1. Navigate to the frontend directory:
-   ```
-   cd frontend
-   ```
-
-2. Install dependencies:
-   ```
-   npm install
-   ```
+[Previous frontend setup content remains the same...]
 
 ## Running the Application
 
@@ -92,6 +104,10 @@ quant_analysis_project/
    - In a new terminal, navigate to the `frontend` directory
    - Run `npm start`
 
+3. Scheduler:
+   - In a separate terminal with activated virtual environment
+   - Run `python manage_schedule.py`
+
 The backend will be available at `http://localhost:5000`, and the frontend at `http://localhost:3000`.
 
 ## Current Features
@@ -100,16 +116,21 @@ The backend will be available at `http://localhost:5000`, and the frontend at `h
 - Basic stock information retrieval
 - Historical stock data fetching
 - Fundamental metrics calculation
+- Automated market index updates
+- Real-time data monitoring
 
 ## API Endpoints
 
-- POST /register: Register a new user
-- POST /login: User login
-- GET /logout: User logout
-- GET /search: Search for stocks
-- GET /stock/<symbol>: Get basic stock information
-- GET /stock/<symbol>/historical: Get historical price data
-- GET /stock/<symbol>/metrics: Get fundamental metrics
+[Previous API endpoints content remains the same...]
+
+## Test Account
+```json
+{
+    "username": "testuser",
+    "email": "test@example.com",
+    "password": "testpassword"
+}
+```
 
 ## Next Steps
 
@@ -118,6 +139,7 @@ The backend will be available at `http://localhost:5000`, and the frontend at `h
 - Integrate frontend with backend API
 - Implement more advanced analysis features
 - Add data visualization for stock metrics and historical data
+- Enhance scheduling capabilities and monitoring
 
 ## Contributing
 
@@ -126,9 +148,3 @@ Please read CONTRIBUTING.md for details on our code of conduct, and the process 
 ## License
 
 This project is licensed under the MIT License - see the LICENSE.md file for details.
-```
-////Test account
-
-  "username": "testuser",
-    "email": "test@example.com",
-    "password": "testpassword"

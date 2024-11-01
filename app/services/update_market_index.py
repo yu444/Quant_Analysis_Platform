@@ -71,6 +71,9 @@ def update_market_index(name, date, open_value, high_value, low_value, close_val
 
 def update_market_indices():
     """Update all specified market indices in the database."""
+    print("--------------------------------------")  # Clear visual separator
+    #print(f"Running update_market_indices at: {datetime.now()}")  # Add timestamp
+    logger.info("update_market_indices started")
     for index in MARKET_INDICES:
         ticker = index["ticker"]
         name = index["name"]
