@@ -1,3 +1,8 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 class Config:
     # Basic Flask Configuration
     SECRET_KEY = 'qap-!@#-123-HJ,'

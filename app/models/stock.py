@@ -33,6 +33,8 @@ class StockMetrics(db.Model):
     revenue_growth = db.Column(db.Float)
     
 class MarketIndex(db.Model):
+    __tablename__ = 'market_indices'
+    
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)  # e.g., S&P 500
     date = db.Column(db.Date, nullable=False)  # Date of the index value
@@ -41,6 +43,9 @@ class MarketIndex(db.Model):
     low_value = db.Column(db.Float)   # Lowest value of the index for the day
     close_value = db.Column(db.Float)  # Closing value of the index
     volume = db.Column(db.BigInteger)   # Trading volume (if applicable)
+    
+    # Add a unique constraint for name and date combination
+    __table_args__ = (db.UniqueConstraint('name', 'date', name='unique_name_date'),)
 
 # Example usage: Create instances for each index
 s_and_p_500 = MarketIndex(name="S&P 500", date=datetime.now().date())

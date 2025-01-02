@@ -41,14 +41,19 @@ def fetch_market_data(ticker):
 def update_market_index(name, date, open_value, high_value, low_value, close_value, volume):
     """Update or insert a market index in the database."""
     try:
+        # Use get() instead of first() to ensure we get None if not found
         index_record = MarketIndex.query.filter_by(name=name, date=date).first()
+        
         if index_record:
+            # Update existing record
             index_record.open_value = open_value
             index_record.high_value = high_value
             index_record.low_value = low_value
             index_record.close_value = close_value
             index_record.volume = volume
+            logger.info(f"Updated market index: {name} on {date}")
         else:
+            # Create new record
             index_record = MarketIndex(
                 name=name,
                 date=date,
@@ -59,16 +64,28 @@ def update_market_index(name, date, open_value, high_value, low_value, close_val
                 volume=volume
             )
             db.session.add(index_record)
+            logger.info(f"Inserted new market index: {name} on {date}")
         
         db.session.commit()
-        logger.info(f"Updated/Inserted market index: {name} on {date}")
-    except IntegrityError:
+    except IntegrityError as e:
         db.session.rollback()
-        logger.error(f"IntegrityError for market index: {name} on {date}")
+        # Try to update if record exists (in case of race condition)
+        try:
+            db.session.query(MarketIndex).filter_by(name=name, date=date).update({
+                'open_value': open_value,
+                'high_value': high_value,
+                'low_value': low_value,
+                'close_value': close_value,
+                'volume': volume
+            })
+            db.session.commit()
+            logger.info(f"Updated existing market index after integrity error: {name} on {date}")
+        except Exception as inner_e:
+            db.session.rollback()
+            logger.error(f"Error updating market index {name} on {date} after integrity error: {inner_e}")
     except Exception as e:
         db.session.rollback()
         logger.error(f"Error updating market index {name} on {date}: {e}")
-
 def update_market_indices():
     """Update all specified market indices in the database."""
     print("--------------------------------------")  # Clear visual separator
