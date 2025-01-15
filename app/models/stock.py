@@ -34,18 +34,18 @@ class StockMetrics(db.Model):
     
 class MarketIndex(db.Model):
     __tablename__ = 'market_indices'
-    
+    __table_args__ = (
+        db.UniqueConstraint('name', 'date', name='uix_market_indices_name_date'),
+    )
+
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), unique=True, nullable=False)  # e.g., S&P 500
-    date = db.Column(db.Date, nullable=False)  # Date of the index value
-    open_value = db.Column(db.Float)  # Opening value of the index
-    high_value = db.Column(db.Float)  # Highest value of the index for the day
-    low_value = db.Column(db.Float)   # Lowest value of the index for the day
-    close_value = db.Column(db.Float)  # Closing value of the index
-    volume = db.Column(db.BigInteger)   # Trading volume (if applicable)
-    
-    # Add a unique constraint for name and date combination
-    __table_args__ = (db.UniqueConstraint('name', 'date', name='unique_name_date'),)
+    name = db.Column(db.String(50), index=True)
+    date = db.Column(db.Date, index=True)
+    open_value = db.Column(db.Float)
+    high_value = db.Column(db.Float)
+    low_value = db.Column(db.Float)
+    close_value = db.Column(db.Float)
+    volume = db.Column(db.BigInteger)
 
 # Example usage: Create instances for each index
 s_and_p_500 = MarketIndex(name="S&P 500", date=datetime.now().date())

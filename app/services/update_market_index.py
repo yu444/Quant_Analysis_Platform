@@ -3,6 +3,8 @@
 import sys
 import os
 
+from sqlalchemy.dialects.mysql import insert
+
 # Add the project root directory to the Python path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.insert(0, project_root)
@@ -39,77 +41,84 @@ def fetch_market_data(ticker):
         return None
 
 def update_market_index(name, date, open_value, high_value, low_value, close_value, volume):
-    """Update or insert a market index in the database."""
+    """Update or insert a market index using MySQL's INSERT ... ON DUPLICATE KEY UPDATE"""
     try:
-        # Use get() instead of first() to ensure we get None if not found
-        index_record = MarketIndex.query.filter_by(name=name, date=date).first()
+        # Prepare the data
+        data = {
+            'name': name,
+            'date': date,
+            'open_value': float(open_value),
+            'high_value': float(high_value),
+            'low_value': float(low_value),
+            'close_value': float(close_value),
+            'volume': int(volume)
+        }
+
+        # Create the insert statement
+        stmt = insert(MarketIndex).values(**data)
         
-        if index_record:
-            # Update existing record
-            index_record.open_value = open_value
-            index_record.high_value = high_value
-            index_record.low_value = low_value
-            index_record.close_value = close_value
-            index_record.volume = volume
-            logger.info(f"Updated market index: {name} on {date}")
-        else:
-            # Create new record
-            index_record = MarketIndex(
-                name=name,
-                date=date,
-                open_value=open_value,
-                high_value=high_value,
-                low_value=low_value,
-                close_value=close_value,
-                volume=volume
-            )
-            db.session.add(index_record)
-            logger.info(f"Inserted new market index: {name} on {date}")
+        # Add ON DUPLICATE KEY UPDATE clause
+        update_dict = {
+            'open_value': stmt.inserted.open_value,
+            'high_value': stmt.inserted.high_value,
+            'low_value': stmt.inserted.low_value,
+            'close_value': stmt.inserted.close_value,
+            'volume': stmt.inserted.volume,
+        }
         
+        # Execute upsert
+        stmt = stmt.on_duplicate_key_update(**update_dict)
+        db.session.execute(stmt)
         db.session.commit()
-    except IntegrityError as e:
-        db.session.rollback()
-        # Try to update if record exists (in case of race condition)
-        try:
-            db.session.query(MarketIndex).filter_by(name=name, date=date).update({
-                'open_value': open_value,
-                'high_value': high_value,
-                'low_value': low_value,
-                'close_value': close_value,
-                'volume': volume
-            })
-            db.session.commit()
-            logger.info(f"Updated existing market index after integrity error: {name} on {date}")
-        except Exception as inner_e:
-            db.session.rollback()
-            logger.error(f"Error updating market index {name} on {date} after integrity error: {inner_e}")
+        
+        logger.info(f"Successfully upserted market index: {name} on {date}")
+        return True
+
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Error updating market index {name} on {date}: {e}")
+        logger.error(f"Error upserting market index {name} on {date}: {str(e)}")
+        return False
+
 def update_market_indices():
     """Update all specified market indices in the database."""
-    print("--------------------------------------")  # Clear visual separator
-    #print(f"Running update_market_indices at: {datetime.now()}")  # Add timestamp
-    logger.info("update_market_indices started")
+    logger.info("Starting market indices update")
+    success_count = 0
+    error_count = 0
+
     for index in MARKET_INDICES:
         ticker = index["ticker"]
         name = index["name"]
         
-        # Fetch market data for the ticker symbol
-        market_data = fetch_market_data(ticker)
-        
-        if market_data is not None:
-            date = market_data.name.date()  # Get the date from the DataFrame index
-            open_value = market_data['Open']
-            high_value = market_data['High']
-            low_value = market_data['Low']
-            close_value = market_data['Close']
-            volume = market_data['Volume']
+        try:
+            # Fetch market data for the ticker symbol
+            market_data = fetch_market_data(ticker)
             
-            update_market_index(name, date, open_value, high_value, low_value, close_value, volume)
-    
-    logger.info("Finished updating market indices")
+            if market_data is not None:
+                date = market_data.name.date()
+                success = update_market_index(
+                    name=name,
+                    date=date,
+                    open_value=market_data['Open'],
+                    high_value=market_data['High'],
+                    low_value=market_data['Low'],
+                    close_value=market_data['Close'],
+                    volume=market_data['Volume']
+                )
+                if success:
+                    success_count += 1
+                else:
+                    error_count += 1
+            else:
+                logger.warning(f"No data received for {name} ({ticker})")
+                error_count += 1
+                
+        except Exception as e:
+            error_count += 1
+            logger.error(f"Failed to update {name}: {str(e)}")
+            continue
 
+    logger.info(f"Finished updating market indices. Success: {success_count}, Errors: {error_count}")
+    
 def run_market_index_update():
     """Run the market index update with app context."""
     with current_app.app_context():
