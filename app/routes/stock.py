@@ -98,50 +98,66 @@ def get_market_overview():
 def get_latest_indices():
     """Get latest market indices data from database"""
     try:
-        # Get latest date with data
-        latest_date = db.session.query(MarketIndex.date)\
-                               .order_by(desc(MarketIndex.date))\
-                               .first()
+        print("Starting get_latest_indices...")
         
-        if not latest_date:
-            return jsonify({'error': 'No index data available'}), 404
-            
-        latest_date = latest_date[0]
-        
-        # Get all indices for the latest date
-        indices = MarketIndex.query.filter_by(date=latest_date).all()
+        # Define the indices we want to retrieve
+        INDEX_NAMES = ['Gold', 'Crude Oil', 'Russell 2000', 'Nasdaq', 'Dow 30']
         
         indices_data = {}
-        for index in indices:
-            # Get previous day's data for comparison
-            prev_day = MarketIndex.query\
-                .filter(MarketIndex.name == index.name,
-                       MarketIndex.date < latest_date)\
+        for index_name in INDEX_NAMES:
+            print(f"Processing {index_name}")
+            
+            # Get the latest record for this index
+            latest_index = MarketIndex.query\
+                .filter_by(name=index_name)\
                 .order_by(desc(MarketIndex.date))\
                 .first()
+                
+            if latest_index:
+                print(f"Found latest data for {index_name} on {latest_index.date}")
+                
+                # Get previous day's data for comparison
+                prev_day = MarketIndex.query\
+                    .filter(MarketIndex.name == index_name,
+                           MarketIndex.date < latest_index.date)\
+                    .order_by(desc(MarketIndex.date))\
+                    .first()
+                    
+                print(f"Previous day data for {index_name}: {'Found' if prev_day else 'Not found'}")
+                
+                # Calculate daily change and percentage
+                daily_change = None
+                change_percent = None
+                if prev_day and prev_day.close_value and latest_index.close_value:
+                    daily_change = latest_index.close_value - prev_day.close_value
+                    change_percent = (daily_change / prev_day.close_value) * 100
+                
+                indices_data[index_name] = {
+                    'name': index_name,
+                    'date': latest_index.date.isoformat(),
+                    'latest_value': latest_index.close_value,
+                    'open': latest_index.open_value,
+                    'high': latest_index.high_value,
+                    'low': latest_index.low_value,
+                    'volume': latest_index.volume,
+                    'daily_change': daily_change,
+                    'change_percent': change_percent,
+                    'daily_range': (latest_index.high_value - latest_index.low_value) 
+                                 if latest_index.high_value and latest_index.low_value else None
+                }
+            else:
+                print(f"No data found for {index_name}")
+        
+        print(f"Final indices_data contains {len(indices_data)} indices")
+        
+        if not indices_data:
+            return jsonify({'error': 'No index data available'}), 404
             
-            # Calculate daily change and percentage
-            daily_change = None
-            change_percent = None
-            if prev_day and prev_day.close_value and index.close_value:
-                daily_change = index.close_value - prev_day.close_value
-                change_percent = (daily_change / prev_day.close_value) * 100
-            
-            indices_data[index.name] = {
-                'name': index.name,
-                'date': index.date.isoformat(),
-                'latest_value': index.close_value,
-                'open': index.open_value,
-                'high': index.high_value,
-                'low': index.low_value,
-                'volume': index.volume,
-                'daily_change': daily_change,
-                'change_percent': change_percent,
-                'daily_range': (index.high_value - index.low_value) if index.high_value and index.low_value else None
-            }
+        # Get the most recent date from the collected data
+        latest_date = max(index['date'] for index in indices_data.values())
         
         return jsonify({
-            'date': latest_date.isoformat(),
+            'date': latest_date,
             'indices': indices_data,
             'timestamp': datetime.utcnow().isoformat()
         })

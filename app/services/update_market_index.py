@@ -82,42 +82,42 @@ def update_market_index(name, date, open_value, high_value, low_value, close_val
 def update_market_indices():
     """Update all specified market indices in the database."""
     logger.info("Starting market indices update")
-    success_count = 0
-    error_count = 0
-
+    success = []
+    failed = []
+    
     for index in MARKET_INDICES:
         ticker = index["ticker"]
         name = index["name"]
         
         try:
-            # Fetch market data for the ticker symbol
+            print(f"Fetching data for {name} ({ticker})")
             market_data = fetch_market_data(ticker)
             
             if market_data is not None:
                 date = market_data.name.date()
-                success = update_market_index(
+                result = update_market_index(
                     name=name,
                     date=date,
-                    open_value=market_data['Open'],
-                    high_value=market_data['High'],
-                    low_value=market_data['Low'],
-                    close_value=market_data['Close'],
-                    volume=market_data['Volume']
+                    open_value=float(market_data['Open']),
+                    high_value=float(market_data['High']),
+                    low_value=float(market_data['Low']),
+                    close_value=float(market_data['Close']),
+                    volume=int(market_data['Volume'])
                 )
-                if success:
-                    success_count += 1
+                if result:
+                    success.append(name)
                 else:
-                    error_count += 1
+                    failed.append(name)
             else:
-                logger.warning(f"No data received for {name} ({ticker})")
-                error_count += 1
+                print(f"No data received for {name}")
+                failed.append(name)
                 
         except Exception as e:
-            error_count += 1
-            logger.error(f"Failed to update {name}: {str(e)}")
+            print(f"Failed to update {name}: {str(e)}")
+            failed.append(name)
             continue
-
-    logger.info(f"Finished updating market indices. Success: {success_count}, Errors: {error_count}")
+    
+    print(f"Update completed. Success: {success}, Failed: {failed}")
     
 def run_market_index_update():
     """Run the market index update with app context."""
