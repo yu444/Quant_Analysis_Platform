@@ -140,9 +140,12 @@ function Login() {
     setLoading(true);
     setMessage('');
     setError(false);
-
+  
     try {
-      const response = await fetch('http://localhost:5000/login', {
+      console.log("Login started");
+      
+      // Add timeout promise
+      const loginPromise = fetch('http://localhost:5000/login', {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -150,24 +153,30 @@ function Login() {
         },
         body: JSON.stringify(formData)
       });
-
+  
+      // Create timeout promise
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timed out')), 5000)
+      );
+  
+      // Race between login request and timeout
+      const response = await Promise.race([loginPromise, timeoutPromise]);
+      console.log("Response received");
+      
       const data = await response.json();
-
+      console.log("Response data:", data);
+  
       if (!response.ok) {
         throw new Error(data.message || 'Login failed');
       }
-
+  
       setMessage(data.message);
+      console.log("Login successful, navigating to dashboard");
+      // Remove the checkAuth call and directly navigate on successful login
+      navigate('/dashboard');
       
-      // Check authentication status
-      const isAuthenticated = await checkAuth();
-      if (isAuthenticated) {
-        navigate('/dashboard');
-      } else {
-        setError(true);
-        setMessage('Authentication failed. Please try again.');
-      }
     } catch (error) {
+      console.error("Login error:", error);
       setError(true);
       setMessage(error.message || 'An error occurred');
     } finally {

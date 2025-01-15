@@ -14,6 +14,18 @@ login_manager = LoginManager()
 
 def create_app(config_class=Config):
     app = Flask(__name__)
+    #CORS(app, supports_credentials=True, origins=["http://localhost:3000"])
+    
+    # Disable CORS completely
+    CORS(app, resources={r"/*": {"origins": "*"}})
+    
+    app.config.update(
+        SESSION_COOKIE_SAMESITE=None,
+        SESSION_COOKIE_SECURE=False,  # Set to True in production with HTTPS
+        SESSION_COOKIE_HTTPONLY=False,  # Temporarily for debugging
+        REMEMBER_COOKIE_SAMESITE=None
+    )
+    
     app.config.from_object(config_class)
     
     # Initialize extensions
@@ -21,6 +33,7 @@ def create_app(config_class=Config):
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
+    login_manager.session_protection = None  # Try this temporarily
     
     # Configure CORS - Single configuration
     CORS(app, 
@@ -35,7 +48,12 @@ def create_app(config_class=Config):
     
     @login_manager.user_loader
     def load_user(user_id):
-        return User.query.get(int(user_id))
+        print(f"Loading user: {user_id}")  # Debug print
+        try:
+            return User.query.get(int(user_id))
+        except Exception as e:
+            print(f"Error loading user: {repr(e)}")
+            return None
 
     # Register blueprints
     from app.routes import auth, stock, admin
