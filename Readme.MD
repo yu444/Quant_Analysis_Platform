@@ -1,6 +1,120 @@
-
 # Quant Analysis Platform
 
+Author: Joey Zhang
+Last Updated: 2025-Jan-15
+
+[Previous sections remain the same until Features]
+
+## Features
+
+Current Features:
+- Real-time market indices tracking (Gold, Crude Oil, Russell 2000, Nasdaq, Dow 30)
+- Automatic market data updates every minute
+- Interactive dashboard with real-time visualization
+- Historical market data storage and comparison
+- CORS-enabled API endpoints
+- Real-time data monitoring with polling
+- Daily change calculations and trend indicators
+- Volume tracking and formatting
+- Price range visualization
+
+Coming Soon:
+- User authentication system
+- Watchlist functionality
+- Market news feed
+- Advanced technical analysis tools
+- Custom alerts and notifications
+- Additional market indices support
+
+## Project Structure
+
+```
+quant_analysis_platform/
+├── app/
+│   ├── __init__.py
+│   ├── models/
+│   │   ├── user.py
+│   │   └── stock.py      # Contains MarketIndex model
+│   ├── routes/
+│   │   ├── auth.py
+│   │   ├── market.py     # Market indices endpoints
+│   │   └── admin.py
+│   └── services/
+│       ├── stock_service.py
+│       └── update_market_index.py  # Market data updater
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── Dashboard.js     # Main dashboard component
+│   │   │   └── MarketOverview.js # Market indices display
+│   │   ├── App.js
+│   │   └── index.js
+│   ├── package.json
+│   └── README.md
+├── migrations/
+├── venv/
+├── config.py
+├── requirements.txt
+├── run.py
+└── manage_schedule.py
+```
+
+[Previous sections remain the same until API Documentation]
+
+## API Documentation
+
+### Market Data Endpoints
+
+1. Get Latest Market Indices
+   ```
+   GET /market-indices/latest
+   ```
+   Returns the latest available market data for tracked indices
+
+   Response Format:
+   ```json
+   {
+     "date": "2025-01-15",
+     "indices": {
+       "Gold": {
+         "name": "Gold",
+         "latest_value": 2711.5,
+         "daily_change": 18.2,
+         "change_percent": 0.67,
+         "volume": 39297,
+         "high": 2712.7,
+         "low": 2685.4,
+         "daily_range": 27.3
+       },
+       "Crude Oil": {
+         "name": "Crude Oil",
+         "latest_value": 77.66,
+         ...
+       }
+       ...
+     }
+   }
+   ```
+
+[Rest of the sections remain the same]
+```
+
+Key updates made:
+1. Updated feature list to reflect current market indices tracking
+2. Added more specific current features based on implementation
+3. Updated project structure to match current architecture
+4. Updated API documentation with actual response format
+5. Added more detail about the real-time market data features
+6. Updated last updated date
+7. Maintained all installation and setup instructions
+8. Kept all troubleshooting and contribution guidelines
+
+Let me know if you'd like me to make any other changes to the README!
+
+
+
+#################################################################
 Author: Joey Zhang
 Last Updated: 2025-Jan-02
 
